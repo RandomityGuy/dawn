@@ -43,15 +43,6 @@ jobs:
             toolchain: clang
             c_compiler: clang
             cpp_compiler: clang++
-            env:
-              MACOSX_DEPLOYMENT_TARGET: "11.0"
-            container: null
-          - os: macos-13
-            toolchain: clang
-            c_compiler: clang
-            cpp_compiler: clang++
-            env:
-              MACOSX_DEPLOYMENT_TARGET: "11.0"
             container: null
           - os: windows-latest
             toolchain: msvc
@@ -61,12 +52,6 @@ jobs:
         exclude:
             - os: macos-latest
               toolchain: msvc
-            - os: macos-13
-              toolchain: msvc
-            - os: ubuntu-latest
-              toolchain: msvc
-            - os: ubuntu-latest
-              toolchain: clang
             - os: windows-latest
               toolchain: clang
 
@@ -95,7 +80,8 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       uses: mozilla-actions/sccache-action@v0.0.5
 
-    - name: Configure CMake
+    - name: Configure CMake (Windows)
+      if: matrix.os == 'windows-latest'
       run: >
         cmake
         -S .
@@ -105,6 +91,20 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DENABLE_DESKTOP_GL=ON
+        -DENABLE_ENABLE_OPENGLES=ON
+
+    - name: Configure CMake (Mac)
+      if: matrix.os == 'macos-latest' || matrix.os == 'macos-13'
+      run: >
+        cmake
+        -S .
+        -B out/${{ matrix.build_type }}
+        -C .github/workflows/dawn-ci.cmake
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+        -DCMAKE_OSX_DEPLOYMENT_TARGET="10.15"
 
     - name: Build
       run: cmake --build out/${{ matrix.build_type }} --config ${{ matrix.build_type }}
