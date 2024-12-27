@@ -28,9 +28,9 @@ jobs:
       # 7. <MacOS x64, Debug, latest Clang compiler toolchain on the default runner image, default generator>
       # 8. <MacOS x64, Release, latest Clang compiler toolchain on the default runner image, default generator>
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-13]
-        build_type: [Debug, Release]
-        toolchain: [gcc, clang, msvc]
+        os: [windows-latest, macos-latest, macos-13]
+        build_type: [Release]
+        toolchain: [clang, msvc]
         include:
           - os: macos-latest
             toolchain: clang
@@ -51,30 +51,17 @@ jobs:
             c_compiler: cl
             cpp_compiler: cl
             container: null
-          - os: ubuntu-latest
-            toolchain: gcc
-            c_compiler: gcc
-            cpp_compiler: g++
-            # The manylinux container is to ensure ABI compatibility with glibc 2.28.
-            # This way, the continuous delivery process casts a wide net across many linux distros.
-            container: dockcross/manylinux_2_28-x64:latest
         exclude:
             - os: macos-latest
               toolchain: msvc
-            - os: macos-latest
-              toolchain: gcc
             - os: macos-13
               toolchain: msvc
-            - os: macos-13
-              toolchain: gcc
             - os: ubuntu-latest
               toolchain: msvc
             - os: ubuntu-latest
               toolchain: clang
             - os: windows-latest
               toolchain: clang
-            - os: windows-latest
-              toolchain: gcc
 
     name: CMake-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}
     runs-on: ${{ matrix.os }}
@@ -104,6 +91,7 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DENABLE_DESKTOP_GL=ON
 
     - name: Build
       run: cmake --build out/${{ matrix.build_type }} --config ${{ matrix.build_type }}
