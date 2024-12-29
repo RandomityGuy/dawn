@@ -91,7 +91,6 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DENABLE_DESKTOP_GL=ON
-        -DENABLE_ENABLE_OPENGLES=ON
 
     - name: Configure CMake (Mac)
       if: matrix.os == 'macos-latest' || matrix.os == 'macos-13'
