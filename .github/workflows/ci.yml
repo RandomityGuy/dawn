@@ -66,9 +66,9 @@ jobs:
 
     - name: Set up Windows SDK
       if: matrix.os == 'windows-latest'
-      uses: fbactions/setup-winsdk@v2
+    - uses: GuillaumeFalourd/setup-windows10-sdk-action@v2.4
       with:
-        winsdk-build-version: 22621
+        sdk-version: 22621
 
     - name: Set up dependencies on linux
       if: matrix.container == 'dockcross/manylinux_2_28-x64:latest'
