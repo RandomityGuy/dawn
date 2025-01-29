@@ -58,10 +58,10 @@ std::vector<Ref<PhysicalDeviceBase>> Backend::DiscoverPhysicalDevices(
     if (options->forceFallbackAdapter) {
         return {};
     }
-    //if (!options->compatibilityMode && options->featureLevel != wgpu::FeatureLevel::Compatibility) {
-    //    // Return an empty vector since GL physical devices can only support compatibility mode.
-    //    return {};
-    //}
+    if (!options->compatibilityMode && options->featureLevel != wgpu::FeatureLevel::Compatibility) {
+        // Return an empty vector since GL physical devices can only support compatibility mode.
+        return {};
+    }
 
     bool forceES31AndNoExtensions = false;
     if (auto* togglesDesc = options.Get<DawnTogglesDescriptor>()) {

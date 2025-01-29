@@ -80,9 +80,9 @@ bool RequiresCreatingNewTextureView(
     const UnpackedPtr<TextureViewDescriptor>& textureViewDescriptor) {
     // Compatibility mode validation should prevent the need for creation of
     // new texture views.
-    // if (ToBackend(texture->GetDevice())->IsCompatibilityMode()) {
+    if (ToBackend(texture->GetDevice())->IsCompatibilityMode()) {
         return false;
-    // }
+    }
 
     constexpr wgpu::TextureUsage kShaderUsageNeedsView =
         wgpu::TextureUsage::StorageBinding | wgpu::TextureUsage::TextureBinding;
