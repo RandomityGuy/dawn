@@ -97,7 +97,7 @@ MaybeError ContextEGL::Initialize(wgpu::BackendType backend,
         }
     }
 
-    DAWN_TRY(CheckEGL(egl, egl.BindAPI(EGL_OPENGL_API), "eglBindAPI"));
+    DAWN_TRY(CheckEGL(egl, egl.BindAPI(mDisplay->GetAPIEnum()), "eglBindAPI"));
 
     absl::InlinedVector<EGLint, 10> attribs;
     auto AddAttrib = [&](EGLint attrib, EGLint value) {
