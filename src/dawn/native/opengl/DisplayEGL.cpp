@@ -90,6 +90,17 @@ MaybeError DisplayEGL::InitializeWithDynamicLoading(const char* libName) {
     return InitializeWithProcAndDisplay(getProc, EGL_NO_DISPLAY);
 }
 
+#define EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE 0x320D
+#define EGL_PLATFORM_ANGLE_TYPE_ANGLE                      0x3203
+#define EGL_PLATFORM_ANGLE_MAX_VERSION_MAJOR_ANGLE         0x3204
+#define EGL_PLATFORM_ANGLE_MAX_VERSION_MINOR_ANGLE         0x3205
+#define EGL_PLATFORM_ANGLE_DEBUG_LAYERS_ENABLED            0x3451
+#define EGL_PLATFORM_ANGLE_NATIVE_PLATFORM_TYPE_ANGLE      0x348F
+#define EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE 0x320A
+#define EGL_PLATFORM_ANGLE_ANGLE 0x3202
+#define EGL_PLATFORM_ANGLE_DEVICE_TYPE_EGL_ANGLE 0x348E
+#define EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE 0x3209
+
 MaybeError DisplayEGL::InitializeWithProcAndDisplay(EGLGetProcProc getProc, EGLDisplay display) {
     // Load the EGL functions.
     DAWN_TRY(mFunctions.LoadClientProcs(getProc));
@@ -102,19 +113,20 @@ MaybeError DisplayEGL::InitializeWithProcAndDisplay(EGLGetProcProc getProc, EGLD
         return DAWN_VALIDATION_ERROR("Couldn't create the default EGL display.");
     }
 
-    
-    std::vector<EGLint> displayAttributes;
-    displayAttributes.push_back(EGL_PLATFORM_ANGLE_TYPE_ANGLE);
-    displayAttributes.push_back(EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE);
-    displayAttributes.push_back(EGL_PLATFORM_ANGLE_MAX_VERSION_MAJOR_ANGLE);
-    displayAttributes.push_back(EGL_DONT_CARE);
-    displayAttributes.push_back(EGL_PLATFORM_ANGLE_MAX_VERSION_MINOR_ANGLE);
-    displayAttributes.push_back(EGL_DONT_CARE);
-    displayAttributes.push_back(EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE);
-    displayAttributes.push_back(EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE);
-    displayAttributes.push_back(EGL_NONE);
+    EGLAttrib displayAttributes[] = {
+        EGL_PLATFORM_ANGLE_TYPE_ANGLE,
+        EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE,
+        EGL_PLATFORM_ANGLE_MAX_VERSION_MAJOR_ANGLE,
+        EGL_DONT_CARE,
+        EGL_PLATFORM_ANGLE_MAX_VERSION_MINOR_ANGLE,
+        EGL_DONT_CARE,
+        EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE,
+        EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE,
+        EGL_NONE,
+    };
 
-    egl.GetPlatformDisplay(EGL_PLATFORM_ANGLE_ANGLE, (void*)EGL_DEFAULT_DISPLAY, displayAttributes.data());
+    mDisplay = egl.GetPlatformDisplay(EGL_PLATFORM_ANGLE_ANGLE, (void*)EGL_DEFAULT_DISPLAY,
+                                   displayAttributes);
 
     DAWN_TRY(mFunctions.LoadDisplayProcs(mDisplay));
 
