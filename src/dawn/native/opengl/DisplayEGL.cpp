@@ -102,6 +102,20 @@ MaybeError DisplayEGL::InitializeWithProcAndDisplay(EGLGetProcProc getProc, EGLD
         return DAWN_VALIDATION_ERROR("Couldn't create the default EGL display.");
     }
 
+    
+    std::vector<EGLint> displayAttributes;
+    displayAttributes.push_back(EGL_PLATFORM_ANGLE_TYPE_ANGLE);
+    displayAttributes.push_back(EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE);
+    displayAttributes.push_back(EGL_PLATFORM_ANGLE_MAX_VERSION_MAJOR_ANGLE);
+    displayAttributes.push_back(EGL_DONT_CARE);
+    displayAttributes.push_back(EGL_PLATFORM_ANGLE_MAX_VERSION_MINOR_ANGLE);
+    displayAttributes.push_back(EGL_DONT_CARE);
+    displayAttributes.push_back(EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE);
+    displayAttributes.push_back(EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE);
+    displayAttributes.push_back(EGL_NONE);
+
+    egl.GetPlatformDisplay(EGL_PLATFORM_ANGLE_ANGLE, (void*)EGL_DEFAULT_DISPLAY, displayAttributes.data());
+
     DAWN_TRY(mFunctions.LoadDisplayProcs(mDisplay));
 
     // We require at least EGL 1.4.
