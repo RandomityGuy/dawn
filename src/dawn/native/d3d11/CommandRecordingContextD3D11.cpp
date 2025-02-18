@@ -199,7 +199,7 @@ MaybeError CommandRecordingContext::Initialize(Device* device) {
     ID3D11Device5* d3d11Device = device->GetD3D11Device5();
 
     if (ToBackend(device->GetPhysicalDevice())->IsSharedD3D11Device()) {
-        const D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0};
+        const D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_11_0};
         DAWN_TRY(CheckHRESULT(
             d3d11Device->CreateDeviceContextState(
                 /*Flags=*/0, featureLevels, std::size(featureLevels), D3D11_SDK_VERSION,

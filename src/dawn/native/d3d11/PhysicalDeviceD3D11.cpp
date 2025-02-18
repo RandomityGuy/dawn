@@ -60,7 +60,7 @@ bool PhysicalDevice::SupportsFeatureLevel(wgpu::FeatureLevel featureLevel) const
     // TODO(dawn:1820): compare D3D11 feature levels with Dawn feature levels.
     switch (featureLevel) {
         case wgpu::FeatureLevel::Core: {
-            return mFeatureLevel >= D3D_FEATURE_LEVEL_10_0;
+            return mFeatureLevel >= D3D_FEATURE_LEVEL_11_0;
         }
         case wgpu::FeatureLevel::Compatibility: {
             return mFeatureLevel >= D3D_FEATURE_LEVEL_11_0;
@@ -91,7 +91,7 @@ ResultOrError<ComPtr<ID3D11Device>> PhysicalDevice::CreateD3D11Device(bool enabl
     }
 
     const PlatformFunctions* functions = static_cast<Backend*>(GetBackend())->GetFunctions();
-    const D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0};
+    const D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_11_0};
 
     ComPtr<ID3D11Device> d3d11Device;
 
