@@ -471,12 +471,10 @@ add_subdirectory(third_party)
 # TODO(crbug.com/tint/455): Tint does not currently build with CMake when
 # BUILD_SHARED_LIBS=1, so always build it as static for now.
 set(BUILD_SHARED_LIBS_SAVED ${BUILD_SHARED_LIBS})
-set(BUILD_SHARED_LIBS 0)
+set(BUILD_SHARED_LIBS ON)
 
 add_subdirectory(src/utils)
 add_subdirectory(src/tint)
-
-set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_SAVED})
 
 if (DAWN_ENABLE_D3D11 OR DAWN_ENABLE_D3D12 OR DAWN_ENABLE_METAL OR DAWN_ENABLE_NULL OR DAWN_ENABLE_DESKTOP_GL OR DAWN_ENABLE_OPENGLES OR DAWN_ENABLE_VULKAN OR EMSCRIPTEN)
     add_subdirectory(generator)
