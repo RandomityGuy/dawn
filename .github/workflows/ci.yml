@@ -35,9 +35,9 @@ jobs:
       # 7. <MacOS x64, Debug, latest Clang compiler toolchain on the default runner image, default generator>
       # 8. <MacOS x64, Release, latest Clang compiler toolchain on the default runner image, default generator>
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-latest, macos-latest, ubuntu-latest]
         build_type: [Release]
-        toolchain: [clang, msvc]
+        toolchain: [clang, msvc, gcc]
         include:
           - os: macos-latest
             toolchain: clang
@@ -49,11 +49,31 @@ jobs:
             c_compiler: cl
             cpp_compiler: cl
             container: null
+          - os: ubuntu-latest
+            toolchain: gcc
+            c_compiler: gcc
+            cpp_compiler: g++
+            container: 
+              image: dockcross/manylinux_2_28-x64:latest
+              # Needed to run the "Free disk space on Linux host" step
+              options: --volume /:/host
         exclude:
             - os: macos-latest
               toolchain: msvc
+            - os: macos-latest
+              toolchain: gcc
+            - os: macos-15-intel
+              toolchain: msvc
+            - os: macos-15-intel
+              toolchain: gcc
+            - os: ubuntu-latest
+              toolchain: msvc
+            - os: ubuntu-latest
+              toolchain: clang
             - os: windows-latest
               toolchain: clang
+            - os: windows-latest
+              toolchain: gcc
 
     name: CMake-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}
     runs-on: ${{ matrix.os }}
@@ -104,6 +124,18 @@ jobs:
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
         -DCMAKE_OSX_DEPLOYMENT_TARGET="10.15"
+
+    - name: Configure CMake (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: >
+        cmake
+        -S .
+        -B out/${{ matrix.build_type }}
+        -C .github/workflows/dawn-ci.cmake
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DENABLE_DESKTOP_GL=ON
 
     - name: Build
       run: cmake --build out/${{ matrix.build_type }} --config ${{ matrix.build_type }}
