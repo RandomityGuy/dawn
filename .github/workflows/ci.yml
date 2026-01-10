@@ -91,7 +91,7 @@ jobs:
         sdk-version: 22621
 
     - name: Set up dependencies on linux
-      if: matrix.container == 'dockcross/manylinux_2_28-x64:latest'
+      if: matrix.os == 'ubuntu-latest'
       run: >
         dnf install -y mesa-libGL-devel libxcb libxcb-devel libX11-xcb libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel libXext-devel libxkbcommon libxkbcommon-devel libxkbcommon-x11-devel mesa-vulkan-drivers wayland-protocols-devel wayland-devel
 
