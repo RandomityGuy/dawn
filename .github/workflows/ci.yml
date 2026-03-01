@@ -136,6 +136,7 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DENABLE_DESKTOP_GL=ON
+        -DDAWN_USE_WAYLAND=ON
 
     - name: Build
       run: cmake --build out/${{ matrix.build_type }} --config ${{ matrix.build_type }}
