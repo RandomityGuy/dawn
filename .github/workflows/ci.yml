@@ -7,37 +7,22 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # Use github.run_id on main branch
-  # Use github.event.pull_request.number on pull requests, so it's unique per pull request
-  # Use github.ref on other branches, so it's unique per branch
   group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
-  # Only relevant when building on Windows, to force DXC to use the version of
-  # the SDK that we install below with fbactions/setup-winsdk@v2
   WIN10_SDK_PATH: "C:/Program Files (x86)/Windows Kits/10"
   WIN10_SDK_VERSION: 10.0.22621.0
 
 jobs:
   cmake:
     strategy:
-      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
 
-      # Set up a matrix to run the following 6 configurations:
-      # 1. <Windows, Debug, latest MSVC compiler toolchain on the default runner image, default generator>
-      # 2. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
-      # 3. <Linux, Debug, latest GCC compiler toolchain in the container, default generator>
-      # 4. <Linux, Release, latest GCC compiler toolchain in the container, default generator>
-      # 5. <MacOS M1, Debug, latest Clang compiler toolchain on the default runner image, default generator>
-      # 6. <MacOS M1, Release, latest Clang compiler toolchain on the default runner image, default generator>
-      # 7. <MacOS x64, Debug, latest Clang compiler toolchain on the default runner image, default generator>
-      # 8. <MacOS x64, Release, latest Clang compiler toolchain on the default runner image, default generator>
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
         build_type: [Release]
-        toolchain: [clang, msvc, gcc]
+        toolchain: [clang, msvc, gcc, gcc-arm]
         include:
           - os: macos-latest
             toolchain: clang
@@ -53,27 +38,40 @@ jobs:
             toolchain: gcc
             c_compiler: gcc
             cpp_compiler: g++
-            container: 
+            container:
               image: dockcross/manylinux_2_28-x64:latest
-              # Needed to run the "Free disk space on Linux host" step
+              options: --volume /:/host
+          # ARM Linux configuration
+          - os: ubuntu-latest
+            toolchain: gcc-arm
+            c_compiler: aarch64-linux-gnu-gcc
+            cpp_compiler: aarch64-linux-gnu-g++
+            container:
+              image: dockcross/manylinux_2_28-aarch64:latest
               options: --volume /:/host
         exclude:
-            - os: macos-latest
-              toolchain: msvc
-            - os: macos-latest
-              toolchain: gcc
-            - os: macos-15-intel
-              toolchain: msvc
-            - os: macos-15-intel
-              toolchain: gcc
-            - os: ubuntu-latest
-              toolchain: msvc
-            - os: ubuntu-latest
-              toolchain: clang
-            - os: windows-latest
-              toolchain: clang
-            - os: windows-latest
-              toolchain: gcc
+          - os: macos-latest
+            toolchain: msvc
+          - os: macos-latest
+            toolchain: gcc
+          - os: macos-latest
+            toolchain: gcc-arm
+          - os: macos-15-intel
+            toolchain: msvc
+          - os: macos-15-intel
+            toolchain: gcc
+          - os: macos-15-intel
+            toolchain: gcc-arm
+          - os: ubuntu-latest
+            toolchain: msvc
+          - os: ubuntu-latest
+            toolchain: clang
+          - os: windows-latest
+            toolchain: clang
+          - os: windows-latest
+            toolchain: gcc
+          - os: windows-latest
+            toolchain: gcc-arm
 
     name: CMake-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}
     runs-on: ${{ matrix.os }}
@@ -95,8 +93,13 @@ jobs:
       run: >
         dnf install -y mesa-libGL-devel libxcb libxcb-devel libX11-xcb libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel libXext-devel libxkbcommon libxkbcommon-devel libxkbcommon-x11-devel mesa-vulkan-drivers wayland-protocols-devel wayland-devel
 
+    - name: Set up ARM cross-compilation dependencies
+      if: matrix.toolchain == 'gcc-arm'
+      run: >
+        dnf install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+        binutils-aarch64-linux-gnu
+
     - name: Set up sccache
-      # dawn-ci.cmake documents why sccache is not used in other platforms.
       if: matrix.os == 'ubuntu-latest'
       uses: mozilla-actions/sccache-action@v0.0.5
 
@@ -125,8 +128,8 @@ jobs:
         -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
         -DCMAKE_OSX_DEPLOYMENT_TARGET="10.15"
 
-    - name: Configure CMake (Linux)
-      if: matrix.os == 'ubuntu-latest'
+    - name: Configure CMake (Linux x64)
+      if: matrix.os == 'ubuntu-latest' && matrix.toolchain == 'gcc'
       run: >
         cmake
         -S .
@@ -138,16 +141,32 @@ jobs:
         -DENABLE_DESKTOP_GL=ON
         -DDAWN_USE_WAYLAND=ON
 
+    - name: Configure CMake (Linux ARM)
+      if: matrix.toolchain == 'gcc-arm'
+      run: >
+        cmake
+        -S .
+        -B out/${{ matrix.build_type }}
+        -C .github/workflows/dawn-ci.cmake
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DCMAKE_SYSTEM_NAME=Linux
+        -DCMAKE_SYSTEM_PROCESSOR=aarch64
+        -DCMAKE_TOOLCHAIN_FILE=""
+        -DENABLE_DESKTOP_GL=ON
+        -DDAWN_USE_WAYLAND=ON
+
     - name: Build
       run: cmake --build out/${{ matrix.build_type }} --config ${{ matrix.build_type }}
 
     - name: Package
       run: |
-        cmake --install out/${{ matrix.build_type }} --config ${{ matrix.build_type }} --prefix Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}
-        cmake -E tar cvzf Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}.tar.gz Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}
+        cmake --install out/${{ matrix.build_type }} --config ${{ matrix.build_type }} --prefix Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}
+        cmake -E tar cvzf Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}.tar.gz Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}
-        path: Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}.tar.gz
+        name: Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}
+        path: Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}.tar.gz
