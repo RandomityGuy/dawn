@@ -96,8 +96,8 @@ jobs:
     - name: Set up ARM cross-compilation dependencies
       if: matrix.toolchain == 'gcc-arm'
       run: >
-        dnf install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-        binutils-aarch64-linux-gnu
+        dnf install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+        gcc-c++-aarch64-linux-gnu
 
     - name: Set up sccache
       if: matrix.os == 'ubuntu-latest'
