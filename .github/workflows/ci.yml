@@ -20,9 +20,9 @@ jobs:
       fail-fast: false
 
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest, ubuntu-latest, ubuntu-24.04-arm]
         build_type: [Release]
-        toolchain: [clang, msvc, gcc, gcc-arm]
+        toolchain: [clang, msvc, gcc]
         include:
           - os: macos-latest
             toolchain: clang
@@ -41,37 +41,32 @@ jobs:
             container:
               image: dockcross/manylinux_2_28-x64:latest
               options: --volume /:/host
-          # ARM Linux configuration
-          - os: ubuntu-latest
-            toolchain: gcc-arm
-            c_compiler: aarch64-linux-gnu-gcc
-            cpp_compiler: aarch64-linux-gnu-g++
-            container:
-              image: dockcross/manylinux_2_28-aarch64:latest
-              options: --volume /:/host
+          - os: ubuntu-24.04-arm
+            toolchain: gcc
+            c_compiler: gcc
+            cpp_compiler: g++
+            container: null
         exclude:
           - os: macos-latest
             toolchain: msvc
           - os: macos-latest
             toolchain: gcc
-          - os: macos-latest
-            toolchain: gcc-arm
           - os: macos-15-intel
             toolchain: msvc
           - os: macos-15-intel
             toolchain: gcc
-          - os: macos-15-intel
-            toolchain: gcc-arm
           - os: ubuntu-latest
             toolchain: msvc
           - os: ubuntu-latest
+            toolchain: clang
+          - os: ubuntu-24.04-arm
+            toolchain: msvc
+          - os: ubuntu-24.04-arm
             toolchain: clang
           - os: windows-latest
             toolchain: clang
           - os: windows-latest
             toolchain: gcc
-          - os: windows-latest
-            toolchain: gcc-arm
 
     name: CMake-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}
     runs-on: ${{ matrix.os }}
@@ -93,11 +88,10 @@ jobs:
       run: >
         dnf install -y mesa-libGL-devel libxcb libxcb-devel libX11-xcb libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel libXext-devel libxkbcommon libxkbcommon-devel libxkbcommon-x11-devel mesa-vulkan-drivers wayland-protocols-devel wayland-devel
 
-    - name: Set up ARM cross-compilation dependencies
-      if: matrix.toolchain == 'gcc-arm'
+    - name: Set up dependencies on linux arm
+      if: matrix.os == 'ubuntu-24.04-arm'
       run: >
-        dnf install -y gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu
-        binutils-aarch64-linux-gnu glibc-aarch64-linux-gnu
+        apt-get install -y mesa-libGL-devel libxcb1-dev libx11-xcb-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxext-dev libxkbcommon-dev libxkbcommon-x11-dev libvulkan-dev libwayland-dev wayland-protocols
 
     - name: Set up sccache
       if: matrix.os == 'ubuntu-latest'
@@ -128,8 +122,8 @@ jobs:
         -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
         -DCMAKE_OSX_DEPLOYMENT_TARGET="10.15"
 
-    - name: Configure CMake (Linux x64)
-      if: matrix.os == 'ubuntu-latest' && matrix.toolchain == 'gcc'
+    - name: Configure CMake (Linux)
+      if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
       run: >
         cmake
         -S .
@@ -138,22 +132,6 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DENABLE_DESKTOP_GL=ON
-        -DDAWN_USE_WAYLAND=ON
-
-    - name: Configure CMake (Linux ARM)
-      if: matrix.toolchain == 'gcc-arm'
-      run: >
-        cmake
-        -S .
-        -B out/${{ matrix.build_type }}
-        -C .github/workflows/dawn-ci.cmake
-        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DCMAKE_SYSTEM_NAME=Linux
-        -DCMAKE_SYSTEM_PROCESSOR=aarch64
-        -DCMAKE_SYSROOT=/usr/aarch64-linux-gnu/sysroot
         -DENABLE_DESKTOP_GL=ON
         -DDAWN_USE_WAYLAND=ON
 
@@ -162,11 +140,11 @@ jobs:
 
     - name: Package
       run: |
-        cmake --install out/${{ matrix.build_type }} --config ${{ matrix.build_type }} --prefix Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}
-        cmake -E tar cvzf Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}.tar.gz Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}
+        cmake --install out/${{ matrix.build_type }} --config ${{ matrix.build_type }} --prefix Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}
+        cmake -E tar cvzf Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}.tar.gz Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}
-        path: Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.toolchain }}.tar.gz
+        name: Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}
+        path: Dawn-${{ github.sha }}-${{ matrix.os }}-${{ matrix.build_type }}.tar.gz
